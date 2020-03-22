@@ -13,8 +13,8 @@ Add to your configuration yaml:
 ```yaml
 image_processing:
   - platform: microsoft_vision
-    api_key: <your api key?
-    url: <your endpoint?
+    api_key: <your api key>
+    url: <your endpoint>
 ```
 
 ## Sample script
