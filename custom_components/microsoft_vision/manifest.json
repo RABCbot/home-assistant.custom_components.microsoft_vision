@@ -1,0 +1,10 @@
+{
+        "domain": "microsoft_vision",
+        "name": "Microsoft Vision custom component",
+        "documentation": "https://github.com/RABCBot",
+        "requirements": [],
+        "dependencies": [],
+        "codeowners": [
+                "@rabcbot"
+        ]
+}
