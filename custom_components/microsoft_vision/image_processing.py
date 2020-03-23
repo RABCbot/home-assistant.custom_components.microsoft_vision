@@ -29,6 +29,7 @@ ATTR_DESCRIPTION = 'description'
 ATTR_JSON = 'json'
 ATTR_OPERATION = 'operation'
 ATTR_CONFIDENCE = 'confidence'
+ATTR_BRAND = 'brand'
 
 MICROSOFT_VISION = 'microsoft_vision'
 
@@ -122,6 +123,7 @@ class MicrosoftVisionDevice(Entity):
         self._params = params
         self._api_key = api_key
         self._description = None
+        self._brand = None
         self._json = None
         self._image = None
         self._operation = None
@@ -136,6 +138,11 @@ class MicrosoftVisionDevice(Entity):
     def description(self):
         """Return the description of the platform."""
         return self._description
+
+    @property
+    def brand(self):
+        """Return the brand of the platform."""
+        return self._brand
 
     @property
     def json(self):
@@ -162,6 +169,7 @@ class MicrosoftVisionDevice(Entity):
         """Return the state attributes."""
         attrs = {
             ATTR_DESCRIPTION: self._description,
+            ATTR_BRAND: self._brand,
             ATTR_JSON: self._json,
             ATTR_OPERATION: self._operation,
             ATTR_CONFIDENCE: self._confidence,
@@ -180,6 +188,7 @@ class MicrosoftVisionDevice(Entity):
 
             self._json = None
             self._description = None
+            self._brand = None
             self._confidence = None
             self.async_schedule_update_ha_state()
 
@@ -190,6 +199,9 @@ class MicrosoftVisionDevice(Entity):
 
             if operation == ANALIZE_URL or operation == DETECT_URL:
                 self._json = response.json()
+                self._description = self._json["description"]["captions"][0]["text"]
+                self._confidence = round(100 * self._json["description"]["captions"][0]["confidence"])
+                self._brand = self._json["brands"][0]["name"]
 
             if response.status_code == 202:
                 url = response.headers["Operation-Location"]
