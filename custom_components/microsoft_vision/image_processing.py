@@ -199,9 +199,11 @@ class MicrosoftVisionDevice(Entity):
 
             if operation == ANALIZE_URL or operation == DETECT_URL:
                 self._json = response.json()
-                self._description = self._json["description"]["captions"][0]["text"]
-                self._confidence = round(100 * self._json["description"]["captions"][0]["confidence"])
-                self._brand = self._json["brands"][0]["name"]
+                if len(self._json["description"]["captions"])!=0:
+                  self._description = self._json["description"]["captions"][0]["text"]
+                  self._confidence = round(100 * self._json["description"]["captions"][0]["confidence"])
+                if len(self._json["brands"])!=0:
+                  self._brand = self._json["brands"][0]["name"]
 
             if response.status_code == 202:
                 url = response.headers["Operation-Location"]
