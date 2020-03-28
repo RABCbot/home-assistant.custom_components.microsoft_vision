@@ -14,7 +14,8 @@ Add to your configuration yaml:
 image_processing:
   - platform: microsoft_vision
     api_key: <your api key>
-    url: <your endpoint>
+    endpoint: <your full endpoint>
+    visual_features: <list of features, for example Brands,Faces,Description>
 ```
 
 ## Sample script
