@@ -1,3 +1,4 @@
+
 import asyncio
 import logging
 import requests
@@ -26,7 +27,7 @@ SERVICE_SNAPSHOT = 'snapshot'
 CONF_ENDPOINT = "endpoint"
 CONF_VISUAL_FEATURES = 'visual_features'
 CONF_RECOGNIZE_TEXT_MODE = 'mode'
-CONF_VISUAL_FEATURES_DEFAULT = 'Brands,Description,Faces'
+CONF_VISUAL_FEATURES_DEFAULT = 'Description,Faces'
 CONF_RECOGNIZE_TEXT_MODE_DEFAULT = 'Printed'
 
 ATTR_DESCRIPTION = 'description'
@@ -176,49 +177,53 @@ class MicrosoftVisionDevice(Entity):
 
     def call_api(self, service):
         try:
-            url = URL_VISION.format(self._endpoint, service)
-
             headers = {"Ocp-Apim-Subscription-Key": self._api_key,
                        "Content-Type": "application/octet-stream"}
             params = None
+            url = URL_VISION.format(self._endpoint, service)
             if service == SERVICE_ANALYZE:
                 params =  {"visualFeatures": self._visual_features}
             if service == SERVICE_RECOGNIZE_TEXT:
-                params =  {"mode": self._mode}
+                params =  {"mode": self._text_mode}
+                url = URL_VISION.format(self._endpoint, "recognizeText")
 
             self._json = None
             self._description = None
             self._brand = None
             self._confidence = None
+            self._state = None
             self.async_schedule_update_ha_state()
 
             response = requests.post(url, headers=headers, params=params, data=self._image.content)
             response.raise_for_status()
-            self._json = response.json()
             
-            if "description" in self._json:
-                self._description = self._json["description"]["captions"][0]["text"]
-                self._confidence = round(100 * self._json["description"]["captions"][0]["confidence"])
-            if 'brands' in self._json and len(self._json["brands"]) != 0:
-                self._brand = self._json["brands"][0]["name"]
+            if response.status_code == 200:
+                self._state = "ready"
+                self._json = response.json()
+                if "description" in self._json:
+                    self._description = self._json["description"]["captions"][0]["text"]
+                    self._confidence = round(100 * self._json["description"]["captions"][0]["confidence"])
+                if "brands" in self._json and len(self._json["brands"]) != 0:
+                    self._brand = self._json["brands"][0]["name"]
 
             if response.status_code == 202:
+                _LOGGER.info(response.headers)
                 url = response.headers["Operation-Location"]
-                time.sleep(4)
+                time.sleep(5)
                 response = requests.get(url, headers=headers)
                 response.raise_for_status()
                 self._description = None
                 self._json = response.json()
 
                 if self._json["status"] == "Succeeded":
-                    for line in self._json["recognitionResult"]["lines"]:
-                        if line["text"] != "888":
-                            self._description = line["text"]
+                    self._state = "ready"
+                    if "recognitionResult" in self._json and len(self._json["recognitionResult"]["lines"]) != 0:
+                        self._description = self._json["recognitionResult"]["lines"][0]["text"]
 
             self.async_schedule_update_ha_state()
 
-        except Exception as err:
-            _LOGGER.error("Failed to call Microsoft API with error: %s", err)
+        except:
+            raise
 
     def set_image(self, image):
         self._image = image
