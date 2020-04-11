@@ -26,7 +26,7 @@ vision:
   - service: image_processing.snapshot
     data:
       camera_entity: camera.door
-  - service: image_processing.describe
+  - service: image_processing.analyze
   - service: notify.notifyme
     data_template:
       message: With "{{ states.image_processing.microsoft_vision.attributes.confidence
