@@ -2,7 +2,7 @@
 This custom integration calls the Microsoft Azure Cognitive services Vision API https://azure.microsoft.com/en-us/services/cognitive-services/#api
 
 ## Setup
-Get the service endpoint and key, follow this instruction https://docs.microsoft.com/en-us/azure/search/search-get-started-postman
+Get the service endpoint and key, follow these instructions https://docs.microsoft.com/en-us/azure/search/search-get-started-postman
 
 ## Installation
 Copy all the files from this repo, to your custom_component folder
