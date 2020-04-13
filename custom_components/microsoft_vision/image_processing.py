@@ -10,7 +10,6 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
 from homeassistant.components.image_processing import DOMAIN
 from homeassistant.const import CONF_NAME, CONF_API_KEY, CONF_URL, CONF_TIMEOUT, ATTR_NAME, ATTR_ENTITY_ID, HTTP_BAD_REQUEST, HTTP_OK, HTTP_UNAUTHORIZED
-from homeassistant.components.microsoft_face import CONF_AZURE_REGION, ATTR_CAMERA_ENTITY
 from homeassistant.exceptions import HomeAssistantError
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,6 +29,7 @@ CONF_RECOGNIZE_TEXT_MODE = 'mode'
 CONF_VISUAL_FEATURES_DEFAULT = 'Description,Faces'
 CONF_RECOGNIZE_TEXT_MODE_DEFAULT = 'Printed'
 
+ATTR_CAMERA_ENTITY = 'camera_entity'
 ATTR_DESCRIPTION = 'description'
 ATTR_JSON = 'json'
 ATTR_CONFIDENCE = 'confidence'
@@ -114,7 +114,7 @@ async def async_setup_platform(hass, config, add_devices, discovery_info=None):
             _LOGGER.error("Error on receive image from entity: %s", err)
 
     hass.services.async_register(DOMAIN, SERVICE_SNAPSHOT, snapshot, schema=SCHEMA_CALL_SERVICE)
-
+  
     return True
 
 class MicrosoftVisionDevice(Entity):
@@ -212,13 +212,15 @@ class MicrosoftVisionDevice(Entity):
                 time.sleep(5)
                 response = requests.get(url, headers=headers)
                 response.raise_for_status()
-                self._description = None
+                self._description = ""
                 self._json = response.json()
 
                 if self._json["status"] == "Succeeded":
                     self._state = "ready"
-                    if "recognitionResult" in self._json and len(self._json["recognitionResult"]["lines"]) != 0:
-                        self._description = self._json["recognitionResult"]["lines"][0]["text"]
+                    for line in self._json["recognitionResult"]["lines"]:
+                        for word in line["words"]:
+                            if "confidence" not in word:
+                                self._description = self.description + " " + word["text"]
 
             self.async_schedule_update_ha_state()
 
