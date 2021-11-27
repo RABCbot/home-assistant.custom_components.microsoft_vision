@@ -56,6 +56,7 @@ async def async_setup_platform(hass, config, add_devices, discovery_info=None):
     devices = []
     try:
         device = MicrosoftVisionDevice(
+            hass,
             config.get(CONF_ENDPOINT), 
             config.get(CONF_API_KEY),
             config.get(CONF_VISUAL_FEATURES, CONF_VISUAL_FEATURES_DEFAULT),
@@ -69,7 +70,7 @@ async def async_setup_platform(hass, config, add_devices, discovery_info=None):
     async def analize(service):
         device = hass.data[MICROSOFT_VISION]
         try:
-            device.call_api(SERVICE_ANALYZE)
+            await device.call_api(SERVICE_ANALYZE)
         except HomeAssistantError as err:
             _LOGGER.error("Error calling analyze: %s", err)
 
@@ -78,7 +79,7 @@ async def async_setup_platform(hass, config, add_devices, discovery_info=None):
     async def describe(service):
         device = hass.data[MICROSOFT_VISION]
         try:
-            device.call_api(SERVICE_DESCRIBE)
+            await device.call_api(SERVICE_DESCRIBE)
         except HomeAssistantError as err:
             _LOGGER.error("Error calling describe: %s", err)
 
@@ -87,7 +88,7 @@ async def async_setup_platform(hass, config, add_devices, discovery_info=None):
     async def detect(service):
         device = hass.data[MICROSOFT_VISION]
         try:
-            device.call_api(SERVICE_DETECT)
+            await device.call_api(SERVICE_DETECT)
         except HomeAssistantError as err:
             _LOGGER.error("Error calling detect: %s", err)
 
@@ -96,7 +97,7 @@ async def async_setup_platform(hass, config, add_devices, discovery_info=None):
     async def recognize_text(service):
         device = hass.data[MICROSOFT_VISION]
         try:
-            device.call_api(SERVICE_RECOGNIZE_TEXT)
+            await device.call_api(SERVICE_RECOGNIZE_TEXT)
         except HomeAssistantError as err:
             _LOGGER.error("Error calling recognize text: %s", err)
 
@@ -120,8 +121,9 @@ async def async_setup_platform(hass, config, add_devices, discovery_info=None):
 class MicrosoftVisionDevice(Entity):
     """Representation of a platform."""
 
-    def __init__(self, endpoint, api_key, visual_features=None, text_mode=None):
+    def __init__(self, hass, endpoint, api_key, visual_features=None, text_mode=None):
         """Initialize the platform."""
+        self._hass = hass
         self._state = None
         self._name = MICROSOFT_VISION
         self._api_key = api_key
@@ -175,7 +177,10 @@ class MicrosoftVisionDevice(Entity):
         }
         return attrs
 
-    def call_api(self, service):
+    async def call_api(self, service):
+        await self._hass.async_add_executor_job(self.post_api, service)
+
+    def post_api(self, service):
         try:
             headers = {"Ocp-Apim-Subscription-Key": self._api_key,
                        "Content-Type": "application/octet-stream"}
@@ -212,7 +217,6 @@ class MicrosoftVisionDevice(Entity):
                 time.sleep(5)
                 response = requests.get(url, headers=headers)
                 response.raise_for_status()
-                self._description = ""
                 self._json = response.json()
 
                 if self._json["status"] == "Succeeded":
@@ -220,7 +224,7 @@ class MicrosoftVisionDevice(Entity):
                     for line in self._json["recognitionResult"]["lines"]:
                         for word in line["words"]:
                             if "confidence" not in word:
-                                self._description = self.description + " " + word["text"]
+                                self._description = word["text"] if self.description is None else self.description + " " + word["text"]
 
             self.async_schedule_update_ha_state()
 
